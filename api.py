@@ -44,8 +44,7 @@ class getMedalTally(Resource):
     	try:
             return medals[team]
         except KeyError:
-            raise NotFound()
-
+            return {"error": "key not found"}
 
 @api.register(prefix='/incrementMedalTally/<string:team>/<string:medal>',pk='<int:auth>')
 class incrementMedalTally(Resource):
@@ -57,7 +56,39 @@ class incrementMedalTally(Resource):
 				medals[team]['medals'][medal] = medals[team]['medals'][medal]+1
 				return 'Success'
             except KeyError:
-                raise NotFound()
+                return {"error": "key not found"}
         else:
-        	raise Unauthorized()
+			return {"error": "unauthorized access"}
+@api.register(pk='<string:event>')
+class getScore(Resource):
+    name = 'getScore'
+
+    def read(self, request, event):
+    	try:
+            return events[event]
+        except KeyError:
+            return {"error": "key not found"}
+
+@api.register(prefix='/setScore/<string:event>/<int:rome_score>/<int:gaul_score>',pk='<int:auth>')
+class setScore(Resource):
+    name = 'setScore'
+
+    def read(self, request, event, rome_score, gaul_score, auth):
+        if auth is 123:
+            try:
+				events[event]['Rome'] = rome_score
+				events[event]['Gaul'] = gaul_score
+				return 'Success'
+            except KeyError:
+                return {"error": "key not found"}
+        else:
+			return {"error": "unauthorized access"}
+
+
+
+
+
+
+
+
 
