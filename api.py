@@ -5,6 +5,7 @@ from restart.exceptions import NotFound
 from restart.utils import make_location_header
 
 import threading
+import time
 
 api = RESTArt()
 
@@ -44,16 +45,16 @@ events = {
 
 @api.register(pk='<string:team>')
 class getMedalTally(Resource):
-    name = 'getMedalTally'
+	name = 'getMedalTally'
 
-    def read(self, request, team):
-    	ret = []
-    	t = threading.Thread(target=getMedalTally.getTally, args=(self, request, team, ret))
-    	t.start()
-    	t.join()
-    	return ret[0]
+	def read(self, request, team):
+		ret = []
+		t = threading.Thread(target=getMedalTally.getTally, args=(self, request, team, ret))
+		t.start()
+		t.join()
+		return ret[0]
 
-    def getTally(self, request, team, ret):
+	def getTally(self, request, team, ret):
 		medals_lock.acquire()
 		try:
 			ret.append(medals[team])
