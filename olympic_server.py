@@ -7,7 +7,7 @@ from SocketServer import ThreadingMixIn
 
 import threading
 import time
-
+import argparse
 
 #Shared resources - a dict for medals and and a dict for events, with a Lock() for accessing each
 medals_lock = threading.Lock()
@@ -43,6 +43,7 @@ events = {
 		'Gaul': 0
 	}
 }
+
 """
 Handler.doGET passes a query and parameters to this function. There are 4 possible queries:
 
@@ -92,7 +93,7 @@ def processQuery(self, query, params):
 			return {"error": "incorrect number of parameters for \"incrementMedalTally\""}
 
 		#check authorization
-		if params[2] == "123":
+		if params[2] == str(auth_id):
 			ret = []
 			medals_lock.acquire() #critical section - increment medals dict
 			try:
@@ -124,10 +125,10 @@ def processQuery(self, query, params):
 		#params[0] == eventName, params[1] == rome_score, params[2] == gaul_score, params[3] == authorization
 		#error checking for key indeces
 		if len(params) != 4: 
-			return {"error": "incorrect number of parameters for \"incrementMedalTally\""}
+			return {"error": "incorrect number of parameters for \"setScore\""}
 
 		#check authorization
-		if params[3] == "123":
+		if params[3] == str(auth_id):
 			ret = []
 			events_lock.acquire() #critical section - modify events dict
 			try:
@@ -146,10 +147,12 @@ def processQuery(self, query, params):
 	else:
 		return {"error": "query not found"}
 
-
+"""
+Receives GET requests from clients, tokenizing and passing query/parameters to processQuery().
+Sends a response to the client. 
+"""
 class Handler(BaseHTTPRequestHandler):
 
-	#handles GET requests, tokenizing and passing query/parameters to processQuery()
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
@@ -163,12 +166,35 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write('\n')
         return
 
-
+"""
+Uses a thread per request model. For each request, a thread is generated to handle that request.
+Uses ThreadingMixIn and BaseHTTPServer
+"""
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 	pass
 
+"""
+	starts the server at the given HOST IP and PORT number
 
+	command line parameters:
+		-a: host ip address   				default='localhost'
+		-p: host port number   				default=8080)
+		-x: cacafonix auth_id     			default=123
+
+"""
 if __name__ == '__main__':
+	#command line arguements
+	parser = argparse.ArgumentParser()
+	parser.add_argument('-a',  dest='host', default='localhost')
+	parser.add_argument('-p',  dest='port', default= 8080)
+	parser.add_argument('-x',  dest='auth_id', default=123)
+
+	args = parser.parse_args()
+
+	HOST = args.host
+	PORT = args.port
+	auth_id = args.auth_id
+
 	HOST = 'localhost'
 	PORT = 8080
 	server = ThreadedHTTPServer((HOST, PORT), Handler)
