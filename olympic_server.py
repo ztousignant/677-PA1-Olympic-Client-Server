@@ -5,17 +5,11 @@ from BaseHTTPServer import HTTPServer
 from BaseHTTPServer import BaseHTTPRequestHandler
 from SocketServer import ThreadingMixIn
 
-from restart import status
-from restart.api import RESTArt
-from restart.resource import Resource
-from restart.exceptions import NotFound
-from restart.utils import make_location_header
-
 import threading
 import time
 
-api = RESTArt()
 
+#Shared resources - a dict for medals and and a dict for events, with a Lock() for accessing each
 medals_lock = threading.Lock()
 medals = {
 	'Rome': {
@@ -49,28 +43,122 @@ events = {
 		'Gaul': 0
 	}
 }
+"""
+Handler.doGET passes a query and parameters to this function. There are 4 possible queries:
 
-@api.register(pk='<string:team>')
-class getMedalTally(Resource):
-	name = 'getMedalTally'
+getMedalTally: returns the bronze/silver/gold medal tally of Rome or Gaul
+	params - teamName
+	returns - JSON formated: {'medals': {'gold': <int>, 'silver': <int>, 'bronze': <int>}}
+	exceptions - error message if KeyException or incorrect number of parameters
 
-	def read(self, request, team):
+incrementMedalTally: increments the tally for the given medal of Rome or Gaul. Requires authorization.
+	params - teamName, medal, authorization
+	returns - success message
+	exceptions - error message if unauthorize access, KeyException, or incorrect number of parameters
+
+getScore: returns the score between Rome and Gaul for a specific event
+	params - eventName
+	returns - JSON formated: {'<string:event>': {'Rome': <int>, 'Gaul': <int>}}
+	exceptions - error message if KeyException or incorrect number of parameters
+
+setScore: sets the score for a particular event. Requires authorization.
+	params - eventName, rome_score, gaul_score, authorization
+	returns - success message
+	exceptions - error message if unauthorize access, KeyException, or incorrect number of parameters, incorrect parameter type
+
+Team names and event names are case sensitive.
+Threadsafe for accessing shared resources.
+"""
+def processQuery(self, query, params):
+	if query == "getMedalTally":
+		#params[0] == teamName
+		#error checking for key indeces
+		if len(params) != 1: 
+			return {"error": "incorrect number of parameters for \"getMedalTally\""}
+
 		ret = []
-		medals_lock.acquire()
+		medals_lock.acquire() #critical section - access medals dict
 		try:
-			ret.append(medals[team])
+			ret.append(medals[params[0]]) 
 		except KeyError:
 			ret.append({"error": "key not found"})
 		medals_lock.release()
 		return ret[0]
 
+	elif query == "incrementMedalTally":
+		#params[0] == teamName, params[1] == medal, params[2] == authorization
+		#error checking for key indeces
+		if len(params) != 3: 
+			return {"error": "incorrect number of parameters for \"incrementMedalTally\""}
+
+		#check authorization
+		if params[2] == "123":
+			ret = []
+			medals_lock.acquire() #critical section - increment medals dict
+			try:
+				medals[params[0]]['medals'][params[1]] = medals[params[0]]['medals'][params[1]]+1
+				ret.append('Success')
+			except KeyError:
+				ret.append({"error": "key not found"})
+			medals_lock.release()
+			return ret[0]
+		else:
+			return {"error": "unauthorized access"}
+
+	elif query == "getScore":
+		#params[0] == eventName
+		#error checking for key indeces
+		if len(params) != 1: 
+			return {"error": "incorrect number of parameters for \"getScore\""}
+
+		ret = []
+		events_lock.acquire() #critical section - access events dict
+		try:
+			ret.append(events[params[0]])
+		except KeyError:
+			ret.append({"error": "key not found"})
+		events_lock.release()
+		return ret[0]
+
+	elif query == "setScore":
+		#params[0] == eventName, params[1] == rome_score, params[2] == gaul_score, params[3] == authorization
+		#error checking for key indeces
+		if len(params) != 4: 
+			return {"error": "incorrect number of parameters for \"incrementMedalTally\""}
+
+		#check authorization
+		if params[3] == "123":
+			ret = []
+			events_lock.acquire() #critical section - modify events dict
+			try:
+				events[params[0]]['Rome'] = int(params[1])
+				events[params[0]]['Gaul'] = int(params[2])
+				ret.append('Success')
+			except KeyError:
+				ret.append({"error": "key not found"})
+			except:
+				ret.append({"error": "make sure keys are of correct type"})
+			events_lock.release()
+			return ret[0]
+		else:
+			return {"error": "unauthorized access"}
+
+	else:
+		return {"error": "query not found"}
+
 
 class Handler(BaseHTTPRequestHandler):
 
+	#handles GET requests, tokenizing and passing query/parameters to processQuery()
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
-        message = self.path #call RESTart api?
+		
+		#split path into query and paramaters, then process
+        a = self.path.split("/",2) 
+        query = a[1]
+        params = a[2].split("/")
+        message = processQuery(self, query, params)
         self.wfile.write(message)
         self.wfile.write('\n')
         return
