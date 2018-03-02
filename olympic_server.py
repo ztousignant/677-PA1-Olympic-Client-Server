@@ -5,6 +5,7 @@ from BaseHTTPServer import HTTPServer
 from BaseHTTPServer import BaseHTTPRequestHandler
 from SocketServer import ThreadingMixIn
 
+import httplib
 import threading
 import time
 import argparse
@@ -42,6 +43,16 @@ events = {
 		'Rome': 0,
 		'Gaul': 0
 	}
+}
+clients_lock = threading.Lock()
+registered_clients = {
+	'Curling':{
+	},
+	'Skiing':{
+	},
+	'Skating':{
+	}
+
 }
 
 """
@@ -98,7 +109,7 @@ def processQuery(self, query, params):
 			medals_lock.acquire() #critical section - increment medals dict
 			try:
 				medals[params[0]]['medals'][params[1]] = medals[params[0]]['medals'][params[1]]+1
-				ret.append('Success')
+				ret.append('success')
 			except KeyError:
 				ret.append({"error": "key not found"})
 			medals_lock.release()
@@ -130,19 +141,50 @@ def processQuery(self, query, params):
 		#check authorization
 		if params[3] == str(auth_id):
 			ret = []
+			update = []
 			events_lock.acquire() #critical section - modify events dict
 			try:
 				events[params[0]]['Rome'] = int(params[1])
 				events[params[0]]['Gaul'] = int(params[2])
-				ret.append('Success')
+				update.append(events[params[0]])
+				ret.append('success')
 			except KeyError:
 				ret.append({"error": "key not found"})
 			except:
 				ret.append({"error": "make sure keys are of correct type"})
 			events_lock.release()
+			if ret[0] == 'success':
+				clients_lock.acquire() #critical section - push to any registered clients
+				if len(registered_clients[params[0]]) > 0:
+					for c in registered_clients[params[0]]:
+						conn = httplib.HTTPConnection(registered_clients[params[0]][c]['ip'], registered_clients[params[0]][c]['port'], timeout=5)
+						temp = str(update[0])
+						conn.request("GET", temp)
+						conn.close()
+				clients_lock.release()
 			return ret[0]
 		else:
 			return {"error": "unauthorized access"}
+	elif query == "registerClient":
+		#params[0] == clientid, params[1] == eventName
+		#error checking for key indeces
+		if len(params) != 2: 
+			return {"error": "incorrect number of parameters for \"registerClient\""}
+		ret = []
+		clients_lock.acquire() #critical section - register new client
+		try:
+			if params[0] not in registered_clients[params[1]]: #make sure no other client with this ID has been registered for this event
+				ip = self.client_address[0]
+				pt = self.client_address[1]
+				registered_clients[params[1]] = {params[0]:{"ip": ip, "port":pt}} #store client port and IP
+				s = "success," + str(ip) + "," + str(pt)
+				ret.append(s)
+			else:
+				ret.append({"error": "client with this key already registered for this event"})	
+		except KeyError:
+				ret.append({"error": "key not found"})
+		clients_lock.release()
+		return ret[0]
 
 	else:
 		return {"error": "query not found"}
@@ -154,17 +196,16 @@ Sends a response to the client.
 class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-		
+		self.send_response(200)
+		self.end_headers()
 		#split path into query and paramaters, then process
-        a = self.path.split("/",2) 
-        query = a[1]
-        params = a[2].split("/")
-        message = processQuery(self, query, params)
-        self.wfile.write(message)
-        self.wfile.write('\n')
-        return
+		a = self.path.split("/",2) 
+		query = a[1]
+		params = a[2].split("/")
+		message = processQuery(self, query, params)
+		self.wfile.write(message)
+		self.wfile.write('\n')
+		return
 
 """
 Uses a thread per request model. For each request, a thread is generated to handle that request.
@@ -180,7 +221,6 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 		-a: host ip address   				default='localhost'
 		-p: host port number   				default=8080)
 		-x: cacafonix auth_id     			default=123
-
 """
 if __name__ == '__main__':
 	#command line arguements
@@ -190,13 +230,11 @@ if __name__ == '__main__':
 	parser.add_argument('-x',  dest='auth_id', default=123)
 
 	args = parser.parse_args()
-
+	
 	HOST = args.host
 	PORT = args.port
 	auth_id = args.auth_id
 
-	HOST = 'localhost'
-	PORT = 8080
 	server = ThreadedHTTPServer((HOST, PORT), Handler)
 	print 'Starting server, use <Ctrl-C> to stop'
 	server.serve_forever()
