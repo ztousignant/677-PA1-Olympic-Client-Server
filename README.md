@@ -1,4 +1,4 @@
-##Running olympic_server.py
+## Running olympic_server.py
 
 Open a terminal and execute:
 ```
@@ -13,7 +13,7 @@ There are optional command line flags as follows:
 Stop running the server with Ctrl-C.
 
 
-##Running olympic_client.py
+## Running olympic_client.py
 
 Open a terminal and execute:
 ```
@@ -26,7 +26,7 @@ There are optional command line flags as follows:
 		-i: client-pull request interval    default=5
 		-x: client auth_id     				      default=0
     
-#client-pull
+# client-pull
 The following GET requests may be issued by any client:
 ```
 GET /getMedalTally/<TeamName>
