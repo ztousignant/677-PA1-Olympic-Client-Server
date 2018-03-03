@@ -29,7 +29,7 @@ There are optional command line flags as follows:
 		
 		-p: host port number   				      default=8080
 		
-		-i: client-pull request interval   			 default=5
+		-i: client-pull request interval		      default=5
 		
 		-x: client auth_id     				      default=0
     
