@@ -26,7 +26,7 @@ There are optional command line flags as follows:
 		-i: client-pull request interval    default=5
 		-x: client auth_id     				      default=0
     
-# client-pull
+#### client-pull
 The following GET requests may be issued by any client:
 ```
 GET /getMedalTally/<TeamName>
@@ -58,7 +58,7 @@ To stop and return to manually entering requests, type "stop":
 stop
 ```
 
-# server-push
+#### server-push
 To register for updates for an event, begin running the client, then type "listen":
 ```
 listen
