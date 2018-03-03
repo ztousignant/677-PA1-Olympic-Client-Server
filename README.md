@@ -6,9 +6,12 @@ python olympic_server.py
 ```
 
 There are optional command line flags as follows:
-		-a: host ip address   				default='localhost'
-		-p: host port number   				default=8080
-		-x: cacafonix auth_id     		default=123
+
+-a: host ip address  			default='localhost'
+
+-p: host port number   			default=8080
+
+-x: cacafonix auth_id     		default=123
 
 Stop running the server with Ctrl-C.
 
@@ -21,12 +24,16 @@ python olympic_client.py
 ```
 
 There are optional command line flags as follows:
+
 		-a: host ip address   				      default='localhost'
+		
 		-p: host port number   				      default=8080
+		
 		-i: client-pull request interval    default=5
+		
 		-x: client auth_id     				      default=0
     
-#### client-pull
+### client-pull:
 The following GET requests may be issued by any client:
 ```
 GET /getMedalTally/<TeamName>
@@ -35,7 +42,7 @@ GET /getScore/<EventName>
 If a client (Cacaphonix) is given the authorization ID that matches the server's,the following requests may also be issued:
 ```
 GET /incrementMedalTally/<TeamName>/<Medal>
-GET /setScore/<EventName>/<int:rome_score>/<int:gaul_score>/
+GET /setScore/<EventName>/<int:rome_score>/<int:gaul_score>
 ```
 Notes: 
 Make sure to include the introductory '/' 
@@ -58,7 +65,7 @@ To stop and return to manually entering requests, type "stop":
 stop
 ```
 
-#### server-push
+### server-push:
 To register for updates for an event, begin running the client, then type "listen":
 ```
 listen
