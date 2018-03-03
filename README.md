@@ -7,11 +7,11 @@ python olympic_server.py
 
 There are optional command line flags as follows:
 
--a: host ip address  			default='localhost'
+		-a: host ip address  			default='localhost'
 
--p: host port number   			default=8080
+		-p: host port number   			default=8080
 
--x: cacafonix auth_id     		default=123
+		-x: cacafonix auth_id     		default=123
 
 Stop running the server with Ctrl-C.
 
@@ -29,7 +29,7 @@ There are optional command line flags as follows:
 		
 		-p: host port number   				      default=8080
 		
-		-i: client-pull request interval    default=5
+		-i: client-pull request interval   			 default=5
 		
 		-x: client auth_id     				      default=0
     
