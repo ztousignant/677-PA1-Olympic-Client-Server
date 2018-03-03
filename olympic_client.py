@@ -104,7 +104,8 @@ def listen(host, port):
 					print mes[0] 
 					break
 				else:
-					print error_str
+					print "unsuccessful registration"
+					print mes[0]
 			except:
 				print error_str
 		else:
@@ -115,8 +116,8 @@ def listen(host, port):
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	sock.bind((mes[1], int(mes[2])))
 	sock.listen(1)
-	conn, addr = sock.accept()
 	while True:
+		conn, addr = sock.accept()
 		msg = conn.recv(1024)
 		m = msg.split()
 		if m:
@@ -131,7 +132,7 @@ def listen(host, port):
 
 	command line parameters:
 		-a: host ip address   				default='localhost'
-		-p: host port number   				default=8080)
+		-p: host port number   				default=8080
 		-i: client-pull request interval    default=5
 		-x: client auth_id     				default=0
 """

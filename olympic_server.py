@@ -56,7 +56,7 @@ registered_clients = {
 }
 
 """
-Handler.doGET passes a query and parameters to this function. There are 4 possible queries:
+Handler.doGET passes a query and parameters to this function. There are 5 possible queries:
 
 getMedalTally: returns the bronze/silver/gold medal tally of Rome or Gaul
 	params - teamName
@@ -75,8 +75,13 @@ getScore: returns the score between Rome and Gaul for a specific event
 
 setScore: sets the score for a particular event. Requires authorization.
 	params - eventName, rome_score, gaul_score, authorization
-	returns - success message
+	returns - success message (IF registered clients, sends updated score)
 	exceptions - error message if unauthorize access, KeyException, or incorrect number of parameters, incorrect parameter type
+
+registerClient: registers a client at with a given port and ip address to recieve updates whenever the score of an event is updated
+	params - clientID, eventName (port # and IP address are pulled from client's GET request)
+	returns - success message
+	exceptions - error message if KeyException, incorrect parameter type, or clientID already in use
 
 Team names and event names are case sensitive.
 Threadsafe for accessing shared resources.
@@ -153,13 +158,13 @@ def processQuery(self, query, params):
 			except:
 				ret.append({"error": "make sure keys are of correct type"})
 			events_lock.release()
-			if ret[0] == 'success':
+			if ret[0] == 'success': #for setScore, if there are clients registered to recieve updates for an event, we send an update
 				clients_lock.acquire() #critical section - push to any registered clients
 				if len(registered_clients[params[0]]) > 0:
 					for c in registered_clients[params[0]]:
 						conn = httplib.HTTPConnection(registered_clients[params[0]][c]['ip'], registered_clients[params[0]][c]['port'], timeout=5)
-						temp = str(update[0])
-						conn.request("GET", temp)
+						msg = str(update[0])
+						conn.request("GET", msg)
 						conn.close()
 				clients_lock.release()
 			return ret[0]
@@ -176,7 +181,7 @@ def processQuery(self, query, params):
 			if params[0] not in registered_clients[params[1]]: #make sure no other client with this ID has been registered for this event
 				ip = self.client_address[0]
 				pt = self.client_address[1]
-				registered_clients[params[1]] = {params[0]:{"ip": ip, "port":pt}} #store client port and IP
+				registered_clients[params[1]][params[0]] = {"ip": ip, "port":pt} #store client port and IP
 				s = "success," + str(ip) + "," + str(pt)
 				ret.append(s)
 			else:
